@@ -104,12 +104,26 @@ int main(void) {
         }
         else if (choice == 2) {
             char filename[256], buf[1024];
-            long remaining, got;
+            unsigned char chunk[1024];
+            long remaining;
 
+            // 1) Read filename
             printf("Enter filename: ");
-            scanf("%255s", filename);
+            if (scanf("%255s", filename) != 1) {
+                fprintf(stderr, "Failed to read filename\n");
+                continue;
+            }
 
-            // SIZE
+            // 2) Text‐file preview prompt
+            int view_only = 0;
+            if (strstr(filename, ".txt")) {
+                char resp;
+                printf("%s looks like a text file. View (V) or Save (S)? ", filename);
+                scanf(" %c", &resp);
+                view_only = (resp=='V' || resp=='v');
+            }
+
+            // 3) SIZE command
             snprintf(buf, sizeof(buf), "SIZE %s", filename);
             send_cmd(sockfp, buf);
             read_line(sockfp, buf, sizeof(buf));
@@ -117,9 +131,9 @@ int main(void) {
                 fprintf(stderr, "SIZE failed: %s", buf);
                 continue;
             }
-            remaining = atol(buf + 3);  // number after "+OK "
+            remaining = atol(buf + 3);
 
-            // GET
+            // 4) GET command
             snprintf(buf, sizeof(buf), "GET %s", filename);
             send_cmd(sockfp, buf);
             read_line(sockfp, buf, sizeof(buf));
@@ -128,25 +142,43 @@ int main(void) {
                 continue;
             }
 
-            // open output file
-            FILE *out = fopen(filename, "wb");
-            if (!out) { perror("fopen"); continue; }
+            // 5) Open output if saving
+            FILE *out = NULL;
+            if (!view_only) {
+                out = fopen(filename, "wb");
+                if (!out) {
+                    perror("fopen");
+                    continue;
+                }
+            }
 
-            // read exactly 'remaining' bytes
-            unsigned char chunk[1024];
+            // 6) Download loop
             while (remaining > 0) {
                 size_t want = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
-                size_t got = fread(chunk, 1, want, sockfp);
-                if (got == 0) { fprintf(stderr, "Unexpected EOF\n"); break; }
-                fwrite(chunk, 1, got, out);
+                size_t got  = fread(chunk, 1, want, sockfp);
+                if (got == 0) {
+                    fprintf(stderr, "Unexpected EOF\n");
+                    break;
+                }
+                if (view_only)
+                    fwrite(chunk, 1, got, stdout);
+                else
+                    fwrite(chunk, 1, got, out);
                 remaining -= got;
             }
-            fclose(out);
-            if (remaining == 0)
-                printf("Downloaded %s\n", filename);
-            else
-                printf("Download incomplete\n");
+
+            // 7) Cleanup & feedback
+            if (view_only) {
+                printf("\n[End of %s]\n", filename);
+            } else {
+                fclose(out);
+                if (remaining == 0)
+                    printf("Downloaded %s successfully.\n", filename);
+                else
+                    printf("Download incomplete: %ld bytes left.\n", remaining);
+            }
         }
+
 
         else if (choice == 3) {
             // send QUIT and stop
