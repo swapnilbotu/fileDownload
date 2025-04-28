@@ -67,6 +67,36 @@ int main(void) {
         return 1;
     }
     printf("Server says: %s", line);
+
+    while (1) {
+        printf("\nMenu:\n");
+        printf(" 1) List files\n");
+        printf(" 2) Download file\n");
+        printf(" 3) Quit\n");
+        printf("Enter choice: ");
+        
+        if (scanf("%d", &choice) != 1) break;
+
+        if (choice == 1) {
+            // placeholder for LIST
+            printf(">> LIST goes here\n");
+        }
+        else if (choice == 2) {
+            // placeholder for GET
+            printf(">> GET goes here\n");
+        }
+        else if (choice == 3) {
+            // send QUIT and break
+            fprintf(sockfp, "QUIT\n");
+            fflush(sockfp);
+            break;
+        }
+        else {
+            printf("Invalid choice.\n");
+        }
+    }
+
+
     fclose(sockfp);
     close(sock);
 
