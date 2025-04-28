@@ -109,7 +109,7 @@ int main(void) {
             printf("Enter filename: ");
             scanf("%255s", filename);
 
-            // 1) SIZE
+            // SIZE
             snprintf(buf, sizeof(buf), "SIZE %s", filename);
             send_cmd(sockfp, buf);
             read_line(sockfp, buf, sizeof(buf));
