@@ -49,6 +49,7 @@ int connect_to_server(const char *host) {
     return sockfd;
 }
 
+// putting everything together
 int main(void) {
     int choice;
     printf("Which server?\n1) Newark\n2) London\n> ");
