@@ -121,9 +121,22 @@ int main(void) {
                 continue;
             }
 
+            // SIZE command; ensured that the requested file is present on the server
+            snprintf(buf, sizeof(buf), "SIZE %s", filename);
+            send_cmd(sockfp, buf);
+            read_line(sockfp, buf, sizeof(buf));
+            if (strncmp(buf, "+OK", 3) != 0) {
+                fprintf(stderr, "File %s does not exist\n", filename);
+                continue;
+            }
+            remaining = atol(buf + 3);
+
             // asking user if they want to view/save txt file
             int view_only = 0;
-            if (strstr(filename, ".txt")) {
+            char* extension = strstr(filename, ".txt");
+
+            // checking if the file they request actually is a text file, if yes, continuing
+            if (extension != NULL && strcmp(extension, ".txt") == 0) {
                 char resp;
                 printf("%s looks like a text file. View (V) or Save (S)? ", filename);
                 scanf(" %c", &resp);
@@ -133,23 +146,13 @@ int main(void) {
             // asks user if they want to overwrite, if saving a text file
             if (!view_only && access(filename, F_OK) == 0) {
                 char resp;
-                printf("%s already exists. Overwrite? (y/n): ", filename);
+                printf("\n%s already exists. Overwrite? (y/n): ", filename);
                 scanf(" %c", &resp);
                 if (resp!='y' && resp!='Y') {
                     printf("Skipping %s\n", filename);
                     continue;   // back to menu
                 }
             }
-
-            // SIZE command
-            snprintf(buf, sizeof(buf), "SIZE %s", filename);
-            send_cmd(sockfp, buf);
-            read_line(sockfp, buf, sizeof(buf));
-            if (strncmp(buf, "+OK", 3) != 0) {
-                fprintf(stderr, "SIZE failed: %s", buf);
-                continue;
-            }
-            remaining = atol(buf + 3);
 
             // GET command
             snprintf(buf, sizeof(buf), "GET %s", filename);
@@ -185,7 +188,7 @@ int main(void) {
                 remaining -= got;
             }
 
-            // dleanup & feedback
+            // cleanup & feedback
             if (view_only) {
                 printf("\n[End of %s]\n", filename);
             } else {
