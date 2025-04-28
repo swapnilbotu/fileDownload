@@ -4,15 +4,30 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <string.h>
 
 #define PORT "3456"
 
-// Opens a TCP connection to host:PORT, or exits on failure
+// send a command (append newline)
+void send_cmd(FILE *fp, const char *cmd) {
+    fprintf(fp, "%s\n", cmd);
+    fflush(fp);
+}
+
+// read a line or exit
+void read_line(FILE *fp, char *buf, size_t sz) {
+    if (!fgets(buf, sz, fp)) {
+        perror("recv");
+        exit(1);
+    }
+}
+
+// opens a TCP connection to host:PORT, or exits on failure
 int connect_to_server(const char *host) {
     struct addrinfo hints = {0}, *res, *rp;
     int sockfd;
 
-    hints.ai_family   = AF_UNSPEC;    // IPv4 or IPv6
+    hints.ai_family   = AF_UNSPEC;    // IPv4 or IPv6, ensures it works for both
     hints.ai_socktype = SOCK_STREAM;  // TCP
 
     if (getaddrinfo(host, PORT, &hints, &res) != 0) {
@@ -74,12 +89,24 @@ int main(void) {
         printf(" 2) Download file\n");
         printf(" 3) Quit\n");
         printf("Enter choice: ");
-        
+
         if (scanf("%d", &choice) != 1) break;
 
         if (choice == 1) {
-            // placeholder for LIST
-            printf(">> LIST goes here\n");
+            char buf[1024];
+            send_cmd(sockfp, "LIST");
+            read_line(sockfp, buf, sizeof(buf));  // should be "+OK"
+            if (strncmp(buf, "+OK", 3) != 0) {
+                fprintf(stderr, "LIST failed: %s", buf);
+            } else {
+                // read until "."
+                while (1) {
+                    read_line(sockfp, buf, sizeof(buf));
+                    if (strcmp(buf, ".\n") == 0 || strcmp(buf, ".") == 0)
+                        break;
+                    printf("  %s", buf);
+                }
+            }
         }
         else if (choice == 2) {
             // placeholder for GET
@@ -99,5 +126,4 @@ int main(void) {
 
     fclose(sockfp);
     close(sock);
-
 }
