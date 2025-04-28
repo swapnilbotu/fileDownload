@@ -131,7 +131,7 @@ int main(void) {
             }
             remaining = atol(buf + 3);
 
-            // asking user if they want to view/save txt file
+            // asking user if they want to view/save txt file; extra feature #2
             int view_only = 0;
             char* extension = strstr(filename, ".txt");
 
@@ -143,7 +143,7 @@ int main(void) {
                 view_only = (resp=='V' || resp=='v');
             }
 
-            // asks user if they want to overwrite, if saving a text file
+            // asks user if they want to overwrite, if saving a text file; extra feature #1
             if (!view_only && access(filename, F_OK) == 0) {
                 char resp;
                 printf("\n%s already exists. Overwrite? (y/n): ", filename);
