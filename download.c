@@ -108,7 +108,7 @@ int main(void) {
             }
         }
 
-        // GET
+        // Download file ; GET
         else if (choice == 2) {
             char filename[256], buf[1024];
             unsigned char chunk[1024];
