@@ -57,12 +57,6 @@ int main(void) {
         return 1;
     }
 
-    if (choice == 1) {
-        printf("You chose Newark\n");
-    } else if (choice == 2) {
-        printf("You chose London\n");
-    }
-
     const char *hosts[2] = {
         "newark.cs.sierracollege.edu",
         "london.cs.sierracollege.edu"
@@ -109,20 +103,62 @@ int main(void) {
             }
         }
         else if (choice == 2) {
-            // placeholder for GET
-            printf(">> GET goes here\n");
+            char filename[256], buf[1024];
+            long remaining, got;
+
+            printf("Enter filename: ");
+            scanf("%255s", filename);
+
+            // 1) SIZE
+            snprintf(buf, sizeof(buf), "SIZE %s", filename);
+            send_cmd(sockfp, buf);
+            read_line(sockfp, buf, sizeof(buf));
+            if (strncmp(buf, "+OK", 3) != 0) {
+                fprintf(stderr, "SIZE failed: %s", buf);
+                continue;
+            }
+            remaining = atol(buf + 3);  // number after "+OK "
+
+            // GET
+            snprintf(buf, sizeof(buf), "GET %s", filename);
+            send_cmd(sockfp, buf);
+            read_line(sockfp, buf, sizeof(buf));
+            if (strncmp(buf, "+OK", 3) != 0) {
+                fprintf(stderr, "GET failed: %s", buf);
+                continue;
+            }
+
+            // open output file
+            FILE *out = fopen(filename, "wb");
+            if (!out) { perror("fopen"); continue; }
+
+            // read exactly 'remaining' bytes
+            unsigned char chunk[1024];
+            while (remaining > 0) {
+                size_t want = remaining < sizeof(chunk) ? remaining : sizeof(chunk);
+                size_t got = fread(chunk, 1, want, sockfp);
+                if (got == 0) { fprintf(stderr, "Unexpected EOF\n"); break; }
+                fwrite(chunk, 1, got, out);
+                remaining -= got;
+            }
+            fclose(out);
+            if (remaining == 0)
+                printf("Downloaded %s\n", filename);
+            else
+                printf("Download incomplete\n");
         }
+
         else if (choice == 3) {
-            // send QUIT and break
+            // send QUIT and stop
             fprintf(sockfp, "QUIT\n");
             fflush(sockfp);
+            printf("Swap hopes to see you again soon!\n");
             break;
         }
         else {
             printf("Invalid choice.\n");
         }
     }
-
 
     fclose(sockfp);
     close(sock);
